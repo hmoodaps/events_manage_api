@@ -3,18 +3,23 @@ from django.dispatch import receiver
 from .models import Reservation
 
 @receiver(post_save, sender=Reservation)
-def update_movie_reservations(sender, instance, **kwargs):
-    # الحصول على الفيلم المرتبط بالحجز
+def update_movie_reservations_on_save(sender, instance, **kwargs):
     movie = instance.movie
-    # حساب عدد الحجوزات المرتبطة بالفيلم
     movie.reservations = Reservation.objects.filter(movie=movie).count()
-    # حفظ الفيلم مع العدد المحدث للحجوزات
+    movie.reservedSeats = list(set(movie.reservedSeats + instance.guest.seats))
+    movie.available_seats = movie.seats - len(movie.reservedSeats)
+
+    print(f"Reservations updated: {movie.reservations}") 
+    print(f"Reserved Seats updated: {movie.reservedSeats}")
+    print(f"Available Seats updated: {movie.available_seats}")
+
     movie.save()
+
 
 @receiver(post_delete, sender=Reservation)
 def update_movie_reservations_on_delete(sender, instance, **kwargs):
     movie = instance.movie
-    # حساب عدد الحجوزات الحالية للفيلم بعد الحذف
     movie.reservations = Reservation.objects.filter(movie=movie).count()
-    # حفظ الفيلم مع العدد المحدث للحجوزات
+    movie.reservedSeats = [seat for seat in movie.reservedSeats if seat not in instance.guest.seats]
+    movie.available_seats = movie.seats - len(movie.reservedSeats)
     movie.save()

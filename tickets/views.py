@@ -2,9 +2,10 @@ from rest_framework import status, viewsets, filters, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.admin import User
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from .serializer import *  # تأكد من أن الاستيراد هنا صحيح
+from .serializer import GuestSerializer, MovieSerializer, ReservationSerializer
+from .models import Guest, Movie, Reservation
 
 @api_view(['POST'])
 def create_superuser(request):
@@ -16,7 +17,7 @@ def create_superuser(request):
 
     try:
         user = User.objects.create_superuser(username=username, password=password)
-        token, created = Token.objects.get_or_create(user=user)
+        token, _ = Token.objects.get_or_create(user=user)
 
         return Response({
             "message": "User created successfully",
@@ -36,9 +37,14 @@ class viewsets_movie(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'date', 'hall']  # حدد الحقول التي تريد البحث فيها
+    search_fields = ['name', 'date', 'hall']
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        movie = self.get_object()
+        movie.delete()
+        return Response({"message": "Movie and related reservations deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 class viewsets_reservation(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
@@ -46,70 +52,79 @@ class viewsets_reservation(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        movie_data = request.data.get('movie')
-        guest_data = request.data.get('guest')
-        seats = request.data.get('seats', [])  # List of seats
+    @action(detail=False, methods=['get'], url_path='search-by-seat')
+    def search_by_seat(self, request):
+        seat_number = request.query_params.get('seat')
+        if not seat_number:
+            return Response({"detail": "Seat number is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        movie_qs = Movie.objects.filter(
-            name=movie_data.get('name'),
-            hall=movie_data.get('hall'),
-            date=movie_data.get('date'),
-            time=movie_data.get('time'),
-            ticket_price=movie_data.get('ticket_price')
-        )
+        try:
+            reservation = Reservation.objects.filter(guest__seats__contains=[seat_number]).first()
 
-        if movie_qs.exists():
-            movie = movie_qs.first()  # Use existing movie
-        else:
-            movie = Movie.objects.create(**movie_data)  # Create new movie
+            if reservation:
+                response_data = {
+                    "reservation_code": reservation.reservations_code,
+                    "guest": {
+                        "id": reservation.guest.id,
+                        "full_name": reservation.guest.full_name,
+                        "age": reservation.guest.age,
+                        "reservations": reservation.guest.reservations,
+                        "seats": reservation.guest.seats,
+                        "total_payment": reservation.guest.total_payment,
+                    },
+                    "movie": {
+                        "id": reservation.movie.id,
+                        "name": reservation.movie.name,
+                        "date": reservation.movie.date,
+                        "time": reservation.movie.time,
+                        "hall": reservation.movie.hall,
+                        "seats": reservation.movie.seats,
+                        "available_seats": reservation.movie.available_seats,
+                        "reservations": reservation.movie.reservations,
+                        "photo": reservation.movie.photo,
+                        "ticket_price": reservation.movie.ticket_price,
+                        "reservedSeats": reservation.movie.reservedSeats
+                    }
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+            else:
+                return Response({"detail": "No reservation found for this seat"}, status=status.HTTP_404_NOT_FOUND)
 
-        guest_qs = Guest.objects.filter(
-            full_name=guest_data.get('full_name'),
-            age=guest_data.get('age')
-        )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        if guest_qs.exists():
-            guest = guest_qs.first()  # Use existing guest
-        else:
-            guest = Guest.objects.create(**guest_data, seats=seats)  # Create new guest with seats
+    def retrieve(self, request, *args, **kwargs):
+        reservation_code = kwargs.get('pk')
 
-        # Check for seat availability
-        reserved_seats = set(guest.seats)
-        if reserved_seats & set(seats):
-            return Response({"detail": "Some of the requested seats are already reserved"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            reservation = Reservation.objects.get(reservations_code=reservation_code)
 
-        reservation_qs = Reservation.objects.filter(movie=movie, guest=guest)
-        if reservation_qs.exists():
-            return Response({"detail": "Reservation already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create the Reservation instance
-        reservation = Reservation.objects.create(movie=movie, guest=guest)
-
-        # Update reservations count in Movie
-        movie.reservations = Reservation.objects.filter(movie=movie).count()  # Update reservations count correctly
-        movie.save()
-
-        # Prepare response data including movie and guest info
-        response_data = {
-            "reservation_code": reservation.reservations_code,
-            "movie": {
-                "name": movie.name,
-                "date": movie.date,
-                "time": movie.time,
-                "hall": movie.hall,
-                "sets": movie.sets,
-                "available_seats": movie.available_seats,
-                "reservations": movie.reservations,
-                "photo": movie.photo,
-                "ticket_price": movie.ticket_price
-            },
-            "guest": {
-                "full_name": guest.full_name,
-                "age": guest.age,
-                "reservations": guest.reservations,
-                "seats": guest.seats
+            response_data = {
+                "reservation_code": reservation.reservations_code,
+                "guest": {
+                    "id": reservation.guest.id,
+                    "full_name": reservation.guest.full_name,
+                    "age": reservation.guest.age,
+                    "reservations": reservation.guest.reservations,
+                    "seats": reservation.guest.seats,
+                    "total_payment": reservation.guest.total_payment,
+                },
+                "movie": {
+                    "id": reservation.movie.id,
+                    "name": reservation.movie.name,
+                    "date": reservation.movie.date,
+                    "time": reservation.movie.time,
+                    "hall": reservation.movie.hall,
+                    "seats": reservation.movie.seats,
+                    "available_seats": reservation.movie.available_seats,
+                    "reservations": reservation.movie.reservations,
+                    "photo": reservation.movie.photo,
+                    "ticket_price": reservation.movie.ticket_price,
+                    "reservedSeats": reservation.movie.reservedSeats
+                }
             }
-        }
 
-        return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Reservation.DoesNotExist:
+            return Response({"detail": "Reservation not found"}, status=status.HTTP_404_NOT_FOUND)
