@@ -26,18 +26,22 @@ def create_superuser(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class viewsets_guest(viewsets.ModelViewSet):
+class GuestViewSet(viewsets.ModelViewSet):
     queryset = Guest.objects.all()
     serializer_class = GuestSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['__all__']
+    search_fields = ['full_name']  # البحث بناءً على اسم الضيف
     authentication_classes = [TokenAuthentication]
 
-class viewsets_movie(viewsets.ModelViewSet):
+class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'date', 'hall']
+    search_fields = [
+        'name', 'date', 'hall', 'description', 'vertical_photo',
+        'sponsor_video', 'release_date', 'duration',
+        'rating', 'imdb_rating', 'tags'
+    ]  # البحث بناءً على جميع الحقول الهامة
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -46,11 +50,15 @@ class viewsets_movie(viewsets.ModelViewSet):
         movie.delete()
         return Response({"message": "Movie and related reservations deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-class viewsets_reservation(viewsets.ModelViewSet):
+class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    # البحث بواسطة رمز الحجز، اسم الضيف، أو التاجات
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['reservations_code', 'guest__full_name', 'movie__actors', 'movie__tags']
 
     @action(detail=False, methods=['get'], url_path='search-by-seat')
     def search_by_seat(self, request):
@@ -83,7 +91,16 @@ class viewsets_reservation(viewsets.ModelViewSet):
                         "reservations": reservation.movie.reservations,
                         "photo": reservation.movie.photo,
                         "ticket_price": reservation.movie.ticket_price,
-                        "reservedSeats": reservation.movie.reservedSeats
+                        "reservedSeats": reservation.movie.reservedSeats,
+                        "description": reservation.movie.description,
+                        "vertical_photo": reservation.movie.vertical_photo,
+                        "sponsor_video": reservation.movie.sponsor_video,
+                        "release_date": reservation.movie.release_date,
+                        "duration": reservation.movie.duration,
+                        "rating": reservation.movie.rating,
+                        "imdb_rating": reservation.movie.imdb_rating,
+                        "tags": reservation.movie.tags,
+                        "actors": reservation.movie.actors,
                     }
                 }
                 return Response(response_data, status=status.HTTP_200_OK)
@@ -120,7 +137,16 @@ class viewsets_reservation(viewsets.ModelViewSet):
                     "reservations": reservation.movie.reservations,
                     "photo": reservation.movie.photo,
                     "ticket_price": reservation.movie.ticket_price,
-                    "reservedSeats": reservation.movie.reservedSeats
+                    "reservedSeats": reservation.movie.reservedSeats,
+                    "description": reservation.movie.description,
+                    "vertical_photo": reservation.movie.vertical_photo,
+                    "sponsor_video": reservation.movie.sponsor_video,
+                    "release_date": reservation.movie.release_date,
+                    "duration": reservation.movie.duration,
+                    "rating": reservation.movie.rating,
+                    "imdb_rating": reservation.movie.imdb_rating,
+                    "tags": reservation.movie.tags,
+                    "actors": reservation.movie.actors,
                 }
             }
 

@@ -6,9 +6,9 @@ from tickets import views
 from tickets.views import create_superuser
 
 router = routers.DefaultRouter()
-router.register('guests', views.viewsets_guest)
-router.register('movies', views.viewsets_movie)
-router.register('reservations', views.viewsets_reservation)
+router.register('guests', views.GuestViewSet)
+router.register('movies', views.MovieViewSet)
+router.register('reservations', views.ReservationViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -4,14 +4,35 @@ from .models import Movie, Guest, Reservation
 class MovieSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movie
-        fields = ['id', 'name', 'date', 'time', 'hall', 'seats', 'available_seats', 'reservations', 'photo', 'ticket_price', 'reservedSeats']
+        fields = [
+            'id',
+            'name',
+            'date',
+            'time',
+            'hall',
+            'seats',
+            'available_seats',
+            'reservations',
+            'photo',
+            'ticket_price',
+            'reservedSeats',
+            'description',
+            'vertical_photo',
+            'sponsor_video',
+            'actors',
+            'release_date',
+            'duration',
+            'rating',
+            'imdb_rating',
+            'tags'
+        ]
 
 class GuestSerializer(serializers.ModelSerializer):
     total_payment = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Guest
-        fields = ['id', 'movie_id', 'full_name', 'age', 'reservations', 'seats', 'total_payment']
+        fields = ['id', 'full_name', 'age', 'reservations', 'seats', 'total_payment']
 
 class ReservationSerializer(serializers.ModelSerializer):
     movie = MovieSerializer()
@@ -20,7 +41,6 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = ['id', 'movie', 'guest', 'reservations_code']
-
 
     def create(self, validated_data):
         movie_data = validated_data.pop('movie')
@@ -38,6 +58,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         # إنشاء الحجز
         reservation = Reservation.objects.create(movie=movie, guest=guest, **validated_data)
         return reservation
+
     def update(self, instance, validated_data):
         # تحديث movie
         movie_data = validated_data.pop('movie', None)
