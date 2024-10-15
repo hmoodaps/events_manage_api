@@ -3,16 +3,16 @@
 import os
 import sys
 
-import os
-from django.core.management import execute_from_command_line
+from django.core.wsgi import get_wsgi_application
 
-if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")
-    execute_from_command_line(sys.argv)
 
 def main():
-    """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoProject3.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings')
+
+    # إعداد التطبيق WSGI
+    application = get_wsgi_application()
+
+    # تشغيل المهام الإدارية
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -21,5 +21,9 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+
     execute_from_command_line(sys.argv)
 
+
+if __name__ == '__main__':
+    main()
