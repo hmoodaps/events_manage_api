@@ -3,6 +3,12 @@
 import os
 import sys
 
+import os
+from django.core.management import execute_from_command_line
+
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")
+    execute_from_command_line(sys.argv)
 
 def main():
     """Run administrative tasks."""
@@ -17,6 +23,3 @@ def main():
         ) from exc
     execute_from_command_line(sys.argv)
 
-
-if __name__ == '__main__':
-    main()
