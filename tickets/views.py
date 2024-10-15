@@ -2,10 +2,15 @@ from rest_framework import status, viewsets, filters, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.admin import User
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import action
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from .models import Guest, Reservation
+from .models import Movie
 from .serializer import GuestSerializer, MovieSerializer, ReservationSerializer
-from .models import Guest, Movie, Reservation
+
 
 @api_view(['POST'])
 def create_superuser(request):
@@ -25,12 +30,43 @@ def create_superuser(request):
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+def get_movies(request):
+    movies = Movie.objects.all()
+    data = []
+    for movie in movies:
+        movie_data = {
+            'id': movie.id,
+            'name': movie.name,
+            'show_times': movie.show_times,
+            'seats': movie.seats,
+            'available_seats': movie.available_seats,
+            'reservations': movie.reservations,
+            'photo': movie.photo,
+            'vertical_photo': movie.vertical_photo,
+            'ticket_price': movie.ticket_price,
+            'reservedSeats': movie.reservedSeats,
+            'description': movie.description,
+            'short_description': movie.short_description,
+            'sponsor_video': movie.sponsor_video,
+            'actors': movie.actors,
+            'release_date': movie.release_date,
+            'duration': movie.duration,
+            'rating': movie.rating,
+            'imdb_rating': movie.imdb_rating,
+            'tags': movie.tags,
+            'fhd_image': movie.fhd_image,
+            'genre': movie.genre,
+        }
+        data.append(movie_data)
+    return Response(data)
+
 
 class GuestViewSet(viewsets.ModelViewSet):
     queryset = Guest.objects.all()
     serializer_class = GuestSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['full_name']  # البحث بناءً على اسم الضيف
+    search_fields = ['full_name']
     authentication_classes = [TokenAuthentication]
 
 class MovieViewSet(viewsets.ModelViewSet):
@@ -38,12 +74,12 @@ class MovieViewSet(viewsets.ModelViewSet):
     serializer_class = MovieSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = [
-        'name', 'date', 'hall', 'description', 'vertical_photo',
+        'name', 'description', 'short_description', 'vertical_photo',
         'sponsor_video', 'release_date', 'duration',
-        'rating', 'imdb_rating', 'tags'
-    ]  # البحث بناءً على جميع الحقول الهامة
+        'rating', 'imdb_rating', 'tags', 'actors',
+    ]
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def destroy(self, request, *args, **kwargs):
         movie = self.get_object()
@@ -55,8 +91,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-
-    # البحث بواسطة رمز الحجز، اسم الضيف، أو التاجات
     filter_backends = [filters.SearchFilter]
     search_fields = ['reservations_code', 'guest__full_name', 'movie__actors', 'movie__tags']
 
@@ -70,39 +104,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             reservation = Reservation.objects.filter(guest__seats__contains=[seat_number]).first()
 
             if reservation:
-                response_data = {
-                    "reservation_code": reservation.reservations_code,
-                    "guest": {
-                        "id": reservation.guest.id,
-                        "full_name": reservation.guest.full_name,
-                        "age": reservation.guest.age,
-                        "reservations": reservation.guest.reservations,
-                        "seats": reservation.guest.seats,
-                        "total_payment": reservation.guest.total_payment,
-                    },
-                    "movie": {
-                        "id": reservation.movie.id,
-                        "name": reservation.movie.name,
-                        "date": reservation.movie.date,
-                        "time": reservation.movie.time,
-                        "hall": reservation.movie.hall,
-                        "seats": reservation.movie.seats,
-                        "available_seats": reservation.movie.available_seats,
-                        "reservations": reservation.movie.reservations,
-                        "photo": reservation.movie.photo,
-                        "ticket_price": reservation.movie.ticket_price,
-                        "reservedSeats": reservation.movie.reservedSeats,
-                        "description": reservation.movie.description,
-                        "vertical_photo": reservation.movie.vertical_photo,
-                        "sponsor_video": reservation.movie.sponsor_video,
-                        "release_date": reservation.movie.release_date,
-                        "duration": reservation.movie.duration,
-                        "rating": reservation.movie.rating,
-                        "imdb_rating": reservation.movie.imdb_rating,
-                        "tags": reservation.movie.tags,
-                        "actors": reservation.movie.actors,
-                    }
-                }
+                response_data = self.get_reservation_response_data(reservation)
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 return Response({"detail": "No reservation found for this seat"}, status=status.HTTP_404_NOT_FOUND)
@@ -115,42 +117,41 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         try:
             reservation = Reservation.objects.get(reservations_code=reservation_code)
-
-            response_data = {
-                "reservation_code": reservation.reservations_code,
-                "guest": {
-                    "id": reservation.guest.id,
-                    "full_name": reservation.guest.full_name,
-                    "age": reservation.guest.age,
-                    "reservations": reservation.guest.reservations,
-                    "seats": reservation.guest.seats,
-                    "total_payment": reservation.guest.total_payment,
-                },
-                "movie": {
-                    "id": reservation.movie.id,
-                    "name": reservation.movie.name,
-                    "date": reservation.movie.date,
-                    "time": reservation.movie.time,
-                    "hall": reservation.movie.hall,
-                    "seats": reservation.movie.seats,
-                    "available_seats": reservation.movie.available_seats,
-                    "reservations": reservation.movie.reservations,
-                    "photo": reservation.movie.photo,
-                    "ticket_price": reservation.movie.ticket_price,
-                    "reservedSeats": reservation.movie.reservedSeats,
-                    "description": reservation.movie.description,
-                    "vertical_photo": reservation.movie.vertical_photo,
-                    "sponsor_video": reservation.movie.sponsor_video,
-                    "release_date": reservation.movie.release_date,
-                    "duration": reservation.movie.duration,
-                    "rating": reservation.movie.rating,
-                    "imdb_rating": reservation.movie.imdb_rating,
-                    "tags": reservation.movie.tags,
-                    "actors": reservation.movie.actors,
-                }
-            }
-
+            response_data = self.get_reservation_response_data(reservation)
             return Response(response_data, status=status.HTTP_200_OK)
 
         except Reservation.DoesNotExist:
             return Response({"detail": "Reservation not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    @staticmethod
+    def get_reservation_response_data(reservation):
+        return {
+            "reservation_code": reservation.reservations_code,
+            "guest": {
+                "id": reservation.guest.id,
+                "full_name": reservation.guest.full_name,
+                "age": reservation.guest.age,
+                "reservations": reservation.guest.reservations,
+                "seats": reservation.guest.seats,
+                "total_payment": reservation.guest.total_payment,
+            },
+            "movie": {
+                "id": reservation.movie.id,
+                "name": reservation.movie.name,
+                "seats": reservation.movie.seats,
+                "available_seats": reservation.movie.available_seats,
+                "reservations": reservation.movie.reservations,
+                "photo": reservation.movie.photo,
+                "ticket_price": reservation.movie.ticket_price,
+                "reservedSeats": reservation.movie.reservedSeats,
+                "description": reservation.movie.description,
+                "vertical_photo": reservation.movie.vertical_photo,
+                "sponsor_video": reservation.movie.sponsor_video,
+                "release_date": reservation.movie.release_date,
+                "duration": reservation.movie.duration,
+                "rating": reservation.movie.rating,
+                "imdb_rating": reservation.movie.imdb_rating,
+                "tags": reservation.movie.tags,
+                "actors": reservation.movie.actors,
+            }
+        }

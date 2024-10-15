@@ -7,9 +7,7 @@ class MovieSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'date',
-            'time',
-            'hall',
+            'show_times',  # استخدم show_times بدلاً من date و time
             'seats',
             'available_seats',
             'reservations',
@@ -17,14 +15,17 @@ class MovieSerializer(serializers.ModelSerializer):
             'ticket_price',
             'reservedSeats',
             'description',
+            'short_description',  # إضافة وصف قصير
             'vertical_photo',
+            'fhd_image',  # إضافة صورة بدقة FHD
             'sponsor_video',
             'actors',
             'release_date',
             'duration',
             'rating',
             'imdb_rating',
-            'tags'
+            'tags',
+            'genre',  # إضافة نوع الفيلم
         ]
 
 class GuestSerializer(serializers.ModelSerializer):

@@ -30,7 +30,6 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100)),
                 ('date', models.DateField()),
                 ('time', models.TimeField()),
-                ('hall', models.CharField(max_length=3)),
                 ('seats', models.IntegerField(default=100)),
                 ('available_seats', models.IntegerField(default=100)),
                 ('reservations', models.IntegerField(default=0)),

@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework import routers
 
 from tickets import views
-from tickets.views import create_superuser
+from tickets.views import create_superuser, get_movies
 
 router = routers.DefaultRouter()
 router.register('guests', views.GuestViewSet)
@@ -11,6 +11,8 @@ router.register('movies', views.MovieViewSet)
 router.register('reservations', views.ReservationViewSet)
 
 urlpatterns = [
+    path('movies/', get_movies, name='get_movies'),
+
     path('admin/', admin.site.urls),
     path('viewsets/', include(router.urls)),
     path('create-superuser/', create_superuser, name='create-superuser'),
