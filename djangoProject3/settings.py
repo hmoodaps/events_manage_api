@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-3ko7p#b@@gr=k+je2wlx4ju_^dcwz)-(0fj!9=8ffu1pmixr_$'
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['10.103.29.115', 'localhost', '127.0.0.1' , '*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,12 +64,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoProject3.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
